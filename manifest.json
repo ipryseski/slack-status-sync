@@ -1,0 +1,15 @@
+{
+  "id": "slack-status-sync",
+  "name": "Slack Status Sync",
+  "version": "1.1.0",
+  "description": "Sets your Slack status to the task you're tracking time for, updates it at end of day, and can enable Slack DND while you're in Focus Mode.",
+  "manifestVersion": 1,
+  "minSupVersion": "14.0.0",
+  "author": "You",
+  "icon": "icon.svg",
+  "iFrame": true,
+  "sidePanel": false,
+  "permissions": ["getAllProjects"],
+  "hooks": ["currentTaskChange", "finishDay", "action"],
+  "uiKit": true
+}
