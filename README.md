@@ -6,9 +6,24 @@ notifications while you're in Focus Mode.
 
 ## Install
 
-1. In Super Productivity: **Settings → Plugins → Load Plugin from Folder** (or
-   upload the zip, if you packaged one), and point it at this folder.
-2. A new **"Slack Status Sync"** entry appears in the left-hand menu.
+Super Productivity installs plugins from a ZIP file — there's no
+load-from-folder option, and no way to install one via its REST API, so this
+is the only route.
+
+1. Build the zip from the repo root. The files must be at the **top level** of
+   the archive, not inside a folder — Super Productivity looks up
+   `manifest.json` by exact name and won't find it under a directory:
+
+   ```sh
+   zip slack-status-sync.zip manifest.json plugin.js index.html icon.svg
+   ```
+
+2. In Super Productivity: **Settings → Plugins → Install Plugin**, choose the
+   zip, and accept the permission prompt.
+3. A new **"Slack Status Sync"** entry appears in the left-hand menu.
+
+To pick up later changes, rebuild the zip, install it again, then toggle the
+plugin off and on. There is no hot reload.
 
 ## One-time Slack setup (you need your own Slack app + token)
 
