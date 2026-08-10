@@ -80,6 +80,7 @@
       }
       .token-status.ok { color: #2e7d32; }
       .token-status.missing { color: var(--c-warn, #b26a00); }
+      .token-status.bad { color: var(--c-error, #c62828); }
       a { color: var(--c-primary); }
       #notReady {
         padding: var(--s3);
@@ -97,6 +98,11 @@
       }
       .diag-row code {
         word-break: break-all;
+      }
+      .diag-meta {
+        opacity: 0.5;
+        white-space: nowrap;
+        margin: 0 6px;
       }
       .diag-row .diag-btns {
         display: flex;
@@ -133,6 +139,7 @@
         </p>
         <div id="tokenStatus" class="token-status"></div>
         <div class="actions">
+          <button id="verifyTokenBtn" class="btn-outline">Verify token</button>
           <button id="clearTokenBtn" class="btn-outline">Clear saved token</button>
         </div>
       </div>
@@ -158,6 +165,13 @@
           <input type="checkbox" id="clearOnStop" />
           <label for="clearOnStop">Clear Slack status when I stop tracking (no active task)</label>
         </div>
+        <label for="trackingExpireHours">Auto-clear tracking status after (hours)</label>
+        <input type="number" id="trackingExpireHours" min="0" step="1" style="max-width: 120px" />
+        <p class="hint">
+          0 = never auto-clear. A safety net: if Super Productivity quits or crashes while a task
+          is running, this stops "Working on: …" sticking around indefinitely. Slack handles the
+          expiry, so it applies even when the app isn't running.
+        </p>
       </div>
 
       <div class="card">
@@ -188,13 +202,14 @@
           <input type="checkbox" id="dndEnabled" />
           <label for="dndEnabled">Pause Slack notifications while in Focus Mode</label>
         </div>
-        <label for="dndDurationMinutes">Pause for up to (minutes)</label>
+        <label for="dndDurationMinutes">Fallback pause length (minutes)</label>
         <input type="number" id="dndDurationMinutes" min="1" step="1" style="max-width: 120px" />
         <p class="hint">
-          This does exactly what clicking your Slack profile photo → "Pause notifications" does
-          — Slack always needs a fixed duration for this, so treat it as a ceiling, not the
-          actual session length. Ending focus mode calls "Resume notifications" immediately,
-          regardless of how much of this time is left.
+          This does exactly what clicking your Slack profile photo → "Pause notifications" does.
+          Slack always needs a fixed duration, but the plugin reads the real length from the focus
+          session itself, so this fallback only applies when the session doesn't report one (for
+          example Flowtime mode, or the "Simulate focus start" button below). Ending focus mode
+          calls "Resume notifications" immediately either way.
         </p>
 
         <div class="checkbox-row">
@@ -211,18 +226,25 @@
             <input type="text" id="focusStatusEmoji" placeholder=":no_entry:" />
           </div>
         </div>
+        <p class="hint">
+          While a focus session is running this status takes precedence over task tracking, so
+          starting or switching tasks won't overwrite it. When the session ends, your tracking
+          status is restored automatically.
+        </p>
 
         <label for="focusStartActionTypes">Focus-start action type(s)</label>
         <input type="text" id="focusStartActionTypes" />
         <label for="focusEndActionTypes">Focus-end action type(s)</label>
         <input type="text" id="focusEndActionTypes" />
         <p class="hint">
-          Comma-separated. Super Productivity doesn't have a dedicated "focus mode" plugin hook,
-          so this listens on the generic action stream and matches these exact type strings.
-          Defaults are a best guess — turn on debug logging below, open DevTools (F12 /
-          Ctrl+Shift+I) → Console, start/stop focus mode once, and update these fields with
-          whatever <code>[FocusMode] …</code> lines you actually see if notifications don't
-          pause.
+          Comma-separated. Super Productivity has no dedicated "focus mode" plugin hook, so this
+          listens on the generic action stream and matches these exact type strings. The defaults
+          are taken from Super Productivity's actual focus-mode actions and should work as-is; if
+          your version differs, use the diagnostics below to find the right ones rather than
+          editing blind.
+          <button id="resetFocusTypesBtn" class="btn-outline" style="font-size:0.8em;padding:2px 6px;margin-left:4px">
+            Reset to defaults
+          </button>
         </p>
 
         <div class="checkbox-row">
@@ -244,13 +266,13 @@
             <button id="refreshDiagBtn" class="btn-outline">Refresh</button>
           </div>
           <p class="hint">
-            Click "Refresh" after starting/stopping a real focus session in Super Productivity.
-            If "Actions seen" stays at 0, the plugin isn't receiving app events at all (try
-            reloading the plugin, or reinstalling it — this points at something other than
-            wrong action-type strings). If it's counting up but nothing shows in the list
-            below, Focus Mode's actions in your version don't contain the word "focus" — open
-            DevTools console instead (see README). If entries do show up below, use the
-            "Use as start" / "Use as end" buttons to fill in the fields above automatically.
+            Click "Refresh" after starting/stopping a real focus session. If "Actions seen" stays
+            at 0, the plugin isn't receiving app events at all (try reloading or reinstalling the
+            plugin — that's a different problem than wrong action-type strings). If it counts up
+            but the list stays empty, Focus Mode's actions in your version don't contain the word
+            "focus". Entries are grouped by type with a count, so the once-a-second
+            <code>Timer Tick</code> doesn't crowd out the start/end actions — those are the ones
+            to assign with the buttons below.
           </p>
         </div>
       </div>
@@ -263,27 +285,10 @@
     </div>
 
     <script>
-      const DEFAULT_CFG = {
-        trackingEnabled: true,
-        trackingTextTemplate: 'Working on: {title}',
-        trackingEmoji: ':computer:',
-        clearOnStop: true,
-        endOfDayEnabled: true,
-        endOfDayText: 'Done for today',
-        endOfDayEmoji: ':palm_tree:',
-        endOfDayExpireHours: 12,
-        dndEnabled: false,
-        dndDurationMinutes: 25,
-        focusStatusEnabled: true,
-        focusStatusText: 'In focus mode 🎯',
-        focusStatusEmoji: ':no_entry:',
-        focusStartActionTypes: '[FocusMode] Start Session, [FocusMode] Show Overlay',
-        focusEndActionTypes:
-          '[FocusMode] Cancel Session, [FocusMode] Session Done, [FocusMode] Hide Overlay, [FocusMode] Unload',
-        debugLogFocusActions: false,
-      };
-
-      let cfg = Object.assign({}, DEFAULT_CFG);
+      // Defaults come from plugin.js via the bridge, so there's only one copy
+      // to keep correct. Populated in loadAll() before the form is shown.
+      let DEFAULTS = {};
+      let cfg = {};
       let bridge = null;
 
       const el = (id) => document.getElementById(id);
@@ -316,11 +321,35 @@
         s.style.color = isError ? 'var(--c-warn, #b26a00)' : 'var(--text-color-muted)';
       }
 
+      function renderTokenStatus() {
+        const box = el('tokenStatus');
+        if (!cfg.hasToken) {
+          box.textContent = 'No token saved yet';
+          box.className = 'token-status missing';
+          return;
+        }
+        if (cfg.tokenError) {
+          box.textContent = '⚠ Saved token looks broken: ' + cfg.tokenError;
+          box.className = 'token-status bad';
+          return;
+        }
+        if (cfg.tokenIdentity && cfg.tokenIdentity.user) {
+          box.textContent =
+            '✓ Token verified — ' +
+            cfg.tokenIdentity.user +
+            (cfg.tokenIdentity.team ? ' @ ' + cfg.tokenIdentity.team : '');
+        } else {
+          box.textContent = '✓ Token saved on this device';
+        }
+        box.className = 'token-status ok';
+      }
+
       function populateForm() {
         el('trackingEnabled').checked = !!cfg.trackingEnabled;
         el('trackingTextTemplate').value = cfg.trackingTextTemplate;
         el('trackingEmoji').value = cfg.trackingEmoji;
         el('clearOnStop').checked = !!cfg.clearOnStop;
+        el('trackingExpireHours').value = cfg.trackingExpireHours;
         el('endOfDayEnabled').checked = !!cfg.endOfDayEnabled;
         el('endOfDayText').value = cfg.endOfDayText;
         el('endOfDayEmoji').value = cfg.endOfDayEmoji;
@@ -338,36 +367,31 @@
           ? 'Currently detected as: in focus mode.'
           : 'Currently detected as: not in focus mode.';
 
-        const box = el('tokenStatus');
-        if (cfg.hasToken) {
-          box.textContent = '✓ Token saved on this device';
-          box.className = 'token-status ok';
-        } else {
-          box.textContent = 'No token saved yet';
-          box.className = 'token-status missing';
-        }
+        renderTokenStatus();
       }
 
       function readForm() {
         cfg.trackingEnabled = el('trackingEnabled').checked;
         cfg.trackingTextTemplate =
-          el('trackingTextTemplate').value || DEFAULT_CFG.trackingTextTemplate;
+          el('trackingTextTemplate').value || DEFAULTS.trackingTextTemplate;
         cfg.trackingEmoji = el('trackingEmoji').value;
         cfg.clearOnStop = el('clearOnStop').checked;
+        cfg.trackingExpireHours = Number(el('trackingExpireHours').value) || 0;
         cfg.endOfDayEnabled = el('endOfDayEnabled').checked;
         cfg.endOfDayText = el('endOfDayText').value;
         cfg.endOfDayEmoji = el('endOfDayEmoji').value;
         cfg.endOfDayExpireHours = Number(el('endOfDayExpireHours').value) || 0;
 
         cfg.dndEnabled = el('dndEnabled').checked;
-        cfg.dndDurationMinutes = Number(el('dndDurationMinutes').value) || DEFAULT_CFG.dndDurationMinutes;
+        cfg.dndDurationMinutes =
+          Number(el('dndDurationMinutes').value) || DEFAULTS.dndDurationMinutes;
         cfg.focusStatusEnabled = el('focusStatusEnabled').checked;
         cfg.focusStatusText = el('focusStatusText').value;
         cfg.focusStatusEmoji = el('focusStatusEmoji').value;
         cfg.focusStartActionTypes =
-          el('focusStartActionTypes').value || DEFAULT_CFG.focusStartActionTypes;
+          el('focusStartActionTypes').value || DEFAULTS.focusStartActionTypes;
         cfg.focusEndActionTypes =
-          el('focusEndActionTypes').value || DEFAULT_CFG.focusEndActionTypes;
+          el('focusEndActionTypes').value || DEFAULTS.focusEndActionTypes;
         cfg.debugLogFocusActions = el('debugLogFocusActions').checked;
       }
 
@@ -392,13 +416,17 @@
         return true;
       }
 
+      function refreshFromBridge(b) {
+        cfg = Object.assign({}, DEFAULTS, b.getConfig());
+        populateForm();
+      }
+
       async function loadAll() {
         const ok = await waitForBridge();
         if (!ok) return;
         const b = getBridge();
-        const remote = b.getConfig();
-        cfg = Object.assign({}, DEFAULT_CFG, remote);
-        populateForm();
+        DEFAULTS = b.getDefaults();
+        refreshFromBridge(b);
         el('notReady').style.display = 'none';
         el('form').style.display = 'block';
         try {
@@ -413,16 +441,68 @@
         if (!b) return;
         readForm();
         const tokenInput = el('slackToken').value.trim();
+
+        // Cheap local check before spending a round trip: the README calls
+        // this out because it's the single most common setup mistake.
+        if (tokenInput && tokenInput.indexOf('xoxb-') === 0) {
+          setStatusMsg(
+            'That looks like a Bot token (xoxb-…). You need the User OAuth Token (xoxp-…) from the same page.',
+            true,
+          );
+          return;
+        }
+
         try {
-          await b.saveSettings(cfg, tokenInput || undefined);
-          if (tokenInput) el('slackToken').value = '';
-          const remote = b.getConfig();
-          cfg = Object.assign({}, DEFAULT_CFG, remote);
-          populateForm();
-          setStatusMsg('Saved.', false);
-          showSnack('Slack Status Sync settings saved', 'SUCCESS');
+          const res = await b.saveSettings(cfg, tokenInput || undefined);
+          const check = res && res.tokenCheck;
+          if (check && check.ok) {
+            el('slackToken').value = '';
+            setStatusMsg(
+              'Saved. Token verified as ' +
+                check.user +
+                (check.team ? ' @ ' + check.team : '') +
+                '.',
+              false,
+            );
+            showSnack('Slack Status Sync settings saved', 'SUCCESS');
+          } else if (check && check.fatal) {
+            // Settings were still saved; only the token was rejected.
+            setStatusMsg('Settings saved, but the token was rejected: ' + check.message, true);
+          } else if (check) {
+            el('slackToken').value = '';
+            setStatusMsg(
+              'Saved, but the token could not be verified right now (' +
+                check.message +
+                '). It has been stored anyway.',
+              true,
+            );
+          } else {
+            setStatusMsg('Saved.', false);
+            showSnack('Slack Status Sync settings saved', 'SUCCESS');
+          }
+          refreshFromBridge(b);
         } catch (e) {
           setStatusMsg('Failed to save: ' + (e.message || e), true);
+        }
+      });
+
+      el('verifyTokenBtn').addEventListener('click', async () => {
+        const b = getBridge();
+        if (!b) return;
+        setStatusMsg('Checking token with Slack…', false);
+        try {
+          const res = await b.verifyToken();
+          if (res.ok) {
+            setStatusMsg(
+              'Token is valid — ' + res.user + (res.team ? ' @ ' + res.team : '') + '.',
+              false,
+            );
+          } else {
+            setStatusMsg('Token check failed: ' + (res.message || res.error), true);
+          }
+          refreshFromBridge(b);
+        } catch (e) {
+          setStatusMsg('Token check failed: ' + (e.message || e), true);
         }
       });
 
@@ -431,13 +511,17 @@
         if (!b) return;
         try {
           await b.clearToken();
-          const remote = b.getConfig();
-          cfg = Object.assign({}, DEFAULT_CFG, remote);
-          populateForm();
+          refreshFromBridge(b);
           setStatusMsg('Token cleared.', false);
         } catch (e) {
           setStatusMsg('Failed to clear token: ' + (e.message || e), true);
         }
+      });
+
+      el('resetFocusTypesBtn').addEventListener('click', () => {
+        el('focusStartActionTypes').value = DEFAULTS.focusStartActionTypes;
+        el('focusEndActionTypes').value = DEFAULTS.focusEndActionTypes;
+        setStatusMsg('Focus action types reset — click Save settings to apply.', false);
       });
 
       el('testBtn').addEventListener('click', async () => {
@@ -462,9 +546,7 @@
         if (!b) return;
         try {
           await b.sendTestFocusStart();
-          const remote = b.getConfig();
-          cfg = Object.assign({}, DEFAULT_CFG, remote);
-          populateForm();
+          refreshFromBridge(b);
           setStatusMsg('Simulated focus start — check Slack for paused notifications/status.', false);
         } catch (e) {
           setStatusMsg('Failed: ' + (e.message || e), true);
@@ -476,10 +558,8 @@
         if (!b) return;
         try {
           await b.sendTestFocusEnd();
-          const remote = b.getConfig();
-          cfg = Object.assign({}, DEFAULT_CFG, remote);
-          populateForm();
-          setStatusMsg('Simulated focus end — notifications should resume and status cleared.', false);
+          refreshFromBridge(b);
+          setStatusMsg('Simulated focus end — notifications should resume and status restored.', false);
         } catch (e) {
           setStatusMsg('Failed: ' + (e.message || e), true);
         }
@@ -495,6 +575,17 @@
           existing.push(type);
         }
         input.value = existing.join(', ');
+      }
+
+      function makeAssignBtn(labelText, fieldId, type, msg) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-outline';
+        btn.textContent = labelText;
+        btn.addEventListener('click', () => {
+          addTypeToField(fieldId, type);
+          setStatusMsg(msg, false);
+        });
+        return btn;
       }
 
       function renderDiagnostics(diag) {
@@ -513,41 +604,55 @@
           '.';
 
         const list = el('diagFocusList');
-        if (!diag.recentFocusActions.length) {
-          list.innerHTML =
-            '<p class="hint" style="margin:0">No action types containing "focus" seen yet.</p>';
+        list.textContent = '';
+
+        const entries = diag.focusActions || [];
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'hint';
+          p.style.margin = '0';
+          p.textContent = 'No action types containing "focus" seen yet.';
+          list.appendChild(p);
           return;
         }
-        list.innerHTML = '';
-        diag.recentFocusActions.forEach((entry) => {
+
+        entries.forEach((entry) => {
           const row = document.createElement('div');
           row.className = 'diag-row';
+
+          // Built as DOM nodes rather than an HTML string so action type
+          // strings can never be interpreted as markup.
+          const code = document.createElement('code');
+          code.textContent = entry.type;
+          row.appendChild(code);
+
+          const meta = document.createElement('span');
+          meta.className = 'diag-meta';
           const secAgo = Math.round((Date.now() - entry.ts) / 1000);
-          row.innerHTML =
-            '<code>' +
-            entry.type.replace(/</g, '&lt;') +
-            '</code><span style="opacity:.5;white-space:nowrap;margin:0 6px">' +
-            secAgo +
-            's ago</span>';
+          meta.textContent =
+            (entry.count > 1 ? '×' + entry.count + ', ' : '') + secAgo + 's ago';
+          row.appendChild(meta);
+
           const btns = document.createElement('div');
           btns.className = 'diag-btns';
-          const startBtn = document.createElement('button');
-          startBtn.className = 'btn-outline';
-          startBtn.textContent = 'Use as start';
-          startBtn.addEventListener('click', () => {
-            addTypeToField('focusStartActionTypes', entry.type);
-            setStatusMsg('Added to start types — click Save settings to apply.', false);
-          });
-          const endBtn = document.createElement('button');
-          endBtn.className = 'btn-outline';
-          endBtn.textContent = 'Use as end';
-          endBtn.addEventListener('click', () => {
-            addTypeToField('focusEndActionTypes', entry.type);
-            setStatusMsg('Added to end types — click Save settings to apply.', false);
-          });
-          btns.appendChild(startBtn);
-          btns.appendChild(endBtn);
+          btns.appendChild(
+            makeAssignBtn(
+              'Use as start',
+              'focusStartActionTypes',
+              entry.type,
+              'Added to start types — click Save settings to apply.',
+            ),
+          );
+          btns.appendChild(
+            makeAssignBtn(
+              'Use as end',
+              'focusEndActionTypes',
+              entry.type,
+              'Added to end types — click Save settings to apply.',
+            ),
+          );
           row.appendChild(btns);
+
           list.appendChild(row);
         });
       }
