@@ -93,6 +93,9 @@ jobs:
           path: slack-status-sync.zip
           if-no-files-found: error
           retention-days: 14
+          # Without this, "Re-run all jobs" fails: the previous attempt's
+          # artifact of the same name is still attached to the run.
+          overwrite: true
 
       # One comment per PR, edited in place on each push rather than a new
       # comment every time. Skipped for forks, whose tokens can't write here.
