@@ -229,9 +229,13 @@ aborted — re-stage the fixes and commit again.
 
 ### CI
 
-`.github/workflows/ci.yml` runs ESLint, `prettier --check`, a `manifest.json`
-sanity check, and builds the plugin ZIP as a downloadable artifact on every
-push and pull request.
+`.github/workflows/ci.yml` runs ESLint, `prettier --check` and a `manifest.json`
+sanity check on every push and pull request.
+
+On pull requests it additionally builds the ZIP as a test build and posts a
+download link as a single comment that's edited in place on each push, so you
+can install the exact build under review. The shipped ZIP is only ever built by
+the release workflow — the PR build is a packaging check, not a deliverable.
 
 ### Cutting a release
 

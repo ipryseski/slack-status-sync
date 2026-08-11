@@ -9,7 +9,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "package": "rm -f slack-status-sync.zip && zip -j -X slack-status-sync.zip manifest.json plugin.js index.html icon.svg"
+    "package": "bash scripts/package.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
