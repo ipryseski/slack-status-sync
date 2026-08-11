@@ -101,7 +101,10 @@ jobs:
       # comment every time. Skipped for forks, whose tokens can't write here.
       - name: Comment with download link
         if: github.event.pull_request.head.repo.full_name == github.repository
-        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        # Pinned to a commit SHA, not a tag: this is the one third-party action
+        # here and it runs with pull-requests: write. Tags are mutable; a SHA
+        # isn't. (= v3.0.5)
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88
         with:
           header: plugin-zip
           message: |

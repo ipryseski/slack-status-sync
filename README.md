@@ -276,3 +276,13 @@ around already:
   config data.
 - Manifest declares the `http` permission and `slack.com` in `allowedHosts`,
   so its network access is visible in Super Productivity's plugin UI.
+
+## Security
+
+The plugin holds a Slack user token, so what it can and can't reach is
+documented in [SECURITY.md](SECURITY.md), along with how to report a
+vulnerability privately.
+
+## License
+
+[MIT](LICENSE) © Diane Pryseski
