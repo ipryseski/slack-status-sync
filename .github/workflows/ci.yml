@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  format:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  manifest:
+    name: Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      # manifest.json is what the plugin host parses first; a typo here means
+      # the plugin silently fails to load, so check it separately from lint.
+      - name: Validate manifest.json
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const m = JSON.parse(readFileSync("manifest.json", "utf8"));
+            const required = ["id", "name", "version", "manifestVersion", "minSupVersion"];
+            const missing = required.filter((k) => !(k in m));
+            if (missing.length) {
+              console.error("manifest.json missing keys: " + missing.join(", "));
+              process.exit(1);
+            }
+            console.log(`manifest.json OK (${m.id} v${m.version})`);
+          '
+
+  package:
+    name: Plugin ZIP (test build)
+    # Pull requests only. The ZIP that ships is built by release.yml on a tag;
+    # this is just a pre-merge check that packaging still works, with the
+    # result attached to the PR for manual install testing.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # For the sticky comment below.
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # scripts/package.sh also asserts the archive layout and size limit.
+      - name: Build plugin ZIP
+        run: npm run package
+
+      - name: Read archive details
+        id: zip
+        run: |
+          echo "size=$(du -h slack-status-sync.zip | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p 'require("./manifest.json").version')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload test build
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: slack-status-sync-plugin-pr${{ github.event.number }}
+          path: slack-status-sync.zip
+          if-no-files-found: error
+          retention-days: 14
+          # Without this, "Re-run all jobs" fails: the previous attempt's
+          # artifact of the same name is still attached to the run.
+          overwrite: true
+
+      # One comment per PR, edited in place on each push rather than a new
+      # comment every time. Skipped for forks, whose tokens can't write here.
+      - name: Comment with download link
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: plugin-zip
+          message: |
+            ### 📦 Test build of the plugin ZIP
+
+            **[Download slack-status-sync.zip](${{ steps.upload.outputs.artifact-url }})**
+            (v${{ steps.zip.outputs.version }}, ${{ steps.zip.outputs.size }}, built from ${{ github.event.pull_request.head.sha }})
+
+            Install it via **Settings → Plugins → Install Plugin** in Super
+            Productivity, then toggle the plugin off and on — there's no hot
+            reload. Downloading requires being signed in to GitHub, and the
+            artifact is kept for 14 days.
+
+            <sub>Updated in place on every push to this PR.</sub>

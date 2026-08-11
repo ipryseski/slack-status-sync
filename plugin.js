@@ -104,7 +104,9 @@
   // migrateConfig() replaces these, but only when left untouched, so anyone
   // who already corrected them by hand keeps their values.
   const LEGACY_FOCUS_DEFAULTS = {
-    focusStartActionTypes: ['[FocusMode] Start Session, [FocusMode] Show Overlay'],
+    focusStartActionTypes: [
+      '[FocusMode] Start Session, [FocusMode] Show Overlay',
+    ],
     focusEndActionTypes: [
       '[FocusMode] Cancel Session, [FocusMode] Session Done, [FocusMode] Hide Overlay, [FocusMode] Unload',
     ],
@@ -166,7 +168,10 @@
 
   function snack(msg, type) {
     try {
-      PluginAPI.showSnack({ msg: 'Slack Status Sync: ' + msg, type: type || 'INFO' });
+      PluginAPI.showSnack({
+        msg: 'Slack Status Sync: ' + msg,
+        type: type || 'INFO',
+      });
     } catch (e) {
       logErr('showSnack failed', e);
     }
@@ -188,7 +193,9 @@
     const out = {};
     CONFIG_KEYS.forEach((key) => {
       out[key] =
-        obj && obj[key] !== undefined && obj[key] !== null ? obj[key] : DEFAULT_CFG[key];
+        obj && obj[key] !== undefined && obj[key] !== null
+          ? obj[key]
+          : DEFAULT_CFG[key];
     });
     return out;
   }
@@ -294,7 +301,8 @@
     missing_scope:
       'the token is missing a scope (needs users.profile:write, plus dnd:write for pausing notifications)',
     ratelimited: 'Slack is rate limiting — try again in a moment',
-    bot_token: 'that is a Bot token (xoxb-…); use the User OAuth Token (xoxp-…)',
+    bot_token:
+      'that is a Bot token (xoxb-…); use the User OAuth Token (xoxp-…)',
   };
 
   const FATAL_TOKEN_ERRORS = [
@@ -308,7 +316,9 @@
 
   function describeError(e) {
     const code = (e && e.message) || String(e);
-    return SLACK_ERROR_HINTS[code] ? SLACK_ERROR_HINTS[code] + ' (' + code + ')' : code;
+    return SLACK_ERROR_HINTS[code]
+      ? SLACK_ERROR_HINTS[code] + ' (' + code + ')'
+      : code;
   }
 
   /**
@@ -335,9 +345,16 @@
     const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
     const payload = body.toString();
 
-    if (typeof PluginAPI !== 'undefined' && typeof PluginAPI.request === 'function') {
+    if (
+      typeof PluginAPI !== 'undefined' &&
+      typeof PluginAPI.request === 'function'
+    ) {
       try {
-        return await PluginAPI.request(url, { method: 'POST', headers, body: payload });
+        return await PluginAPI.request(url, {
+          method: 'POST',
+          headers,
+          body: payload,
+        });
       } catch (e) {
         if (e && e.status) {
           const err = new Error('http_' + e.status);
@@ -371,8 +388,13 @@
     } catch (e) {
       const retryable = e && RETRYABLE_HTTP.indexOf(e.status) !== -1;
       if (retryable && attempt < MAX_RETRIES) {
-        const waitS = Math.min(e.retryAfterSeconds || RETRY_FALLBACK_SECONDS, 60);
-        log(method + ' failed with ' + e.status + ', retrying in ' + waitS + 's');
+        const waitS = Math.min(
+          e.retryAfterSeconds || RETRY_FALLBACK_SECONDS,
+          60
+        );
+        log(
+          method + ' failed with ' + e.status + ', retrying in ' + waitS + 's'
+        );
         await sleep(waitS * 1000);
         return slackCall(method, params, token, attempt + 1);
       }
@@ -399,14 +421,17 @@
     const run = slackChain.then(fn);
     slackChain = run.then(
       () => {},
-      () => {},
+      () => {}
     );
     return run;
   }
 
   function requireToken(what) {
     if (slackToken) return true;
-    snack('no Slack token saved yet — open "Slack Status Sync" in the menu to add one.', 'WARNING');
+    snack(
+      'no Slack token saved yet — open "Slack Status Sync" in the menu to add one.',
+      'WARNING'
+    );
     log('skipped ' + what + ': no token');
     return false;
   }
@@ -461,7 +486,7 @@
               status_expiration: expiration,
             }),
           },
-          slackToken,
+          slackToken
         );
         lastStatus = { key: key, expiresAt: expiration };
         return true;
@@ -482,7 +507,10 @@
         return true;
       } catch (e) {
         logErr('failed to pause Slack notifications', e);
-        snack('failed to pause notifications (' + describeError(e) + ')', 'ERROR');
+        snack(
+          'failed to pause notifications (' + describeError(e) + ')',
+          'ERROR'
+        );
         return false;
       }
     });
@@ -496,7 +524,10 @@
         return true;
       } catch (e) {
         logErr('failed to resume Slack notifications', e);
-        snack('failed to resume notifications (' + describeError(e) + ')', 'ERROR');
+        snack(
+          'failed to resume notifications (' + describeError(e) + ')',
+          'ERROR'
+        );
         return false;
       }
     });
@@ -558,8 +589,9 @@
       if (task.projectId) {
         try {
           const projects = await PluginAPI.getAllProjects();
-          project = (projects || []).find((p) => p.id === task.projectId) || null;
-        } catch (e) {
+          project =
+            (projects || []).find((p) => p.id === task.projectId) || null;
+        } catch {
           // non-fatal, {project} just won't be substituted
         }
       }
@@ -567,7 +599,7 @@
         fillTemplate(cfg.trackingTextTemplate, task, project),
         cfg.trackingEmoji,
         cfg.trackingExpireHours,
-        force,
+        force
       );
     }
 
@@ -612,7 +644,12 @@
     }
     inFocusMode = false;
     dayFinished = true;
-    await setSlackStatus(cfg.endOfDayText, cfg.endOfDayEmoji, cfg.endOfDayExpireHours, true);
+    await setSlackStatus(
+      cfg.endOfDayText,
+      cfg.endOfDayEmoji,
+      cfg.endOfDayExpireHours,
+      true
+    );
   }
 
   function splitTypes(str) {
@@ -682,7 +719,10 @@
     }
   }
 
-  PluginAPI.registerHook(PluginAPI.Hooks.CURRENT_TASK_CHANGE, handleCurrentTaskChange);
+  PluginAPI.registerHook(
+    PluginAPI.Hooks.CURRENT_TASK_CHANGE,
+    handleCurrentTaskChange
+  );
   PluginAPI.registerHook(PluginAPI.Hooks.FINISH_DAY, handleFinishDay);
 
   PluginAPI.registerHook(PluginAPI.Hooks.ACTION, async (wrapper) => {
@@ -781,7 +821,14 @@
       return true;
     },
     verifyToken: async () => {
-      if (!slackToken) return { ok: false, error: 'no_token', fatal: true, message: 'no token saved' };
+      if (!slackToken) {
+        return {
+          ok: false,
+          error: 'no_token',
+          fatal: true,
+          message: 'no token saved',
+        };
+      }
       const result = await checkToken(slackToken);
       if (result.ok) {
         tokenIdentity = { user: result.user, team: result.team };
@@ -797,7 +844,7 @@
         '🔧 Slack Status Sync test — this worked!',
         cfg.trackingEmoji || ':wave:',
         1,
-        true,
+        true
       );
     },
     sendTestFocusStart: async () => {

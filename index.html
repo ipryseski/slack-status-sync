@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -78,16 +78,26 @@
         font-size: 0.85em;
         margin-top: var(--s-quarter);
       }
-      .token-status.ok { color: #2e7d32; }
-      .token-status.missing { color: var(--c-warn, #b26a00); }
-      .token-status.bad { color: var(--c-error, #c62828); }
-      a { color: var(--c-primary); }
+      .token-status.ok {
+        color: #2e7d32;
+      }
+      .token-status.missing {
+        color: var(--c-warn, #b26a00);
+      }
+      .token-status.bad {
+        color: var(--c-error, #c62828);
+      }
+      a {
+        color: var(--c-primary);
+      }
       #notReady {
         padding: var(--s3);
         text-align: center;
         color: var(--text-color-muted);
       }
-      #form { display: none; }
+      #form {
+        display: none;
+      }
       .diag-row {
         display: flex;
         align-items: center;
@@ -118,8 +128,8 @@
   <body>
     <h1>Slack Status Sync</h1>
     <p class="subtitle">
-      Sets your Slack status from the task you're tracking time for, and updates it again when
-      you finish your day.
+      Sets your Slack status from the task you're tracking time for, and updates
+      it again when you finish your day.
     </p>
 
     <div id="notReady">Loading settings…</div>
@@ -128,19 +138,28 @@
       <div class="card">
         <h2>Slack token</h2>
         <label for="slackToken">Slack user OAuth token (xoxp-…)</label>
-        <input type="password" id="slackToken" placeholder="xoxp-..." autocomplete="off" />
+        <input
+          type="password"
+          id="slackToken"
+          placeholder="xoxp-..."
+          autocomplete="off"
+        />
         <p class="hint">
-          Stored locally on this device only (never synced or backed up). Requires a Slack app
-          with the <code>users.profile:write</code> and <code>dnd:write</code> user token
-          scopes (the latter only if you use "Pause notifications" below), installed to
-          your workspace. See
-          <a href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a>
+          Stored locally on this device only (never synced or backed up).
+          Requires a Slack app with the <code>users.profile:write</code> and
+          <code>dnd:write</code> user token scopes (the latter only if you use
+          "Pause notifications" below), installed to your workspace. See
+          <a href="https://api.slack.com/apps" target="_blank" rel="noopener"
+            >api.slack.com/apps</a
+          >
           → Create App → OAuth &amp; Permissions → User Token Scopes.
         </p>
         <div id="tokenStatus" class="token-status"></div>
         <div class="actions">
           <button id="verifyTokenBtn" class="btn-outline">Verify token</button>
-          <button id="clearTokenBtn" class="btn-outline">Clear saved token</button>
+          <button id="clearTokenBtn" class="btn-outline">
+            Clear saved token
+          </button>
         </div>
       </div>
 
@@ -148,13 +167,22 @@
         <h2>While tracking a task</h2>
         <div class="checkbox-row">
           <input type="checkbox" id="trackingEnabled" />
-          <label for="trackingEnabled">Update Slack status when I start tracking a task</label>
+          <label for="trackingEnabled"
+            >Update Slack status when I start tracking a task</label
+          >
         </div>
         <div class="row">
           <div>
             <label for="trackingTextTemplate">Status text</label>
-            <input type="text" id="trackingTextTemplate" placeholder="Working on: {title}" />
-            <p class="hint">Use <code>{title}</code> and <code>{project}</code> as placeholders.</p>
+            <input
+              type="text"
+              id="trackingTextTemplate"
+              placeholder="Working on: {title}"
+            />
+            <p class="hint">
+              Use <code>{title}</code> and <code>{project}</code> as
+              placeholders.
+            </p>
           </div>
           <div>
             <label for="trackingEmoji">Emoji</label>
@@ -163,23 +191,38 @@
         </div>
         <div class="checkbox-row">
           <input type="checkbox" id="clearOnStop" />
-          <label for="clearOnStop">Clear Slack status when I stop tracking (no active task)</label>
+          <label for="clearOnStop"
+            >Clear Slack status when I stop tracking (no active task)</label
+          >
         </div>
-        <label for="trackingExpireHours">Auto-clear tracking status after (hours)</label>
-        <input type="number" id="trackingExpireHours" min="0" step="1" style="max-width: 120px" />
+        <label for="trackingExpireHours"
+          >Auto-clear tracking status after (hours)</label
+        >
+        <input
+          type="number"
+          id="trackingExpireHours"
+          min="0"
+          step="1"
+          style="max-width: 120px"
+        />
         <p class="hint">
-          0 = never auto-clear. A safety net: if Super Productivity quits or crashes while a task
-          is running, this stops "Working on: …" sticking around indefinitely. Slack handles the
-          expiry, so it applies even when the app isn't running.
+          0 = never auto-clear. A safety net: if Super Productivity quits or
+          crashes while a task is running, this stops "Working on: …" sticking
+          around indefinitely. Slack handles the expiry, so it applies even when
+          the app isn't running.
         </p>
       </div>
 
       <div class="card">
         <h2>End of day</h2>
-        <p class="hint" style="margin-top:0">Applied when you press the "Finish Day" button.</p>
+        <p class="hint" style="margin-top: 0">
+          Applied when you press the "Finish Day" button.
+        </p>
         <div class="checkbox-row">
           <input type="checkbox" id="endOfDayEnabled" />
-          <label for="endOfDayEnabled">Update Slack status when I finish my day</label>
+          <label for="endOfDayEnabled"
+            >Update Slack status when I finish my day</label
+          >
         </div>
         <div class="row">
           <div>
@@ -192,34 +235,57 @@
           </div>
         </div>
         <label for="endOfDayExpireHours">Auto-clear after (hours)</label>
-        <input type="number" id="endOfDayExpireHours" min="0" step="1" style="max-width: 120px" />
-        <p class="hint">0 = never auto-clear (status stays until you change it yourself).</p>
+        <input
+          type="number"
+          id="endOfDayExpireHours"
+          min="0"
+          step="1"
+          style="max-width: 120px"
+        />
+        <p class="hint">
+          0 = never auto-clear (status stays until you change it yourself).
+        </p>
       </div>
 
       <div class="card">
         <h2>Pause Notifications (Focus Mode)</h2>
         <div class="checkbox-row">
           <input type="checkbox" id="dndEnabled" />
-          <label for="dndEnabled">Pause Slack notifications while in Focus Mode</label>
+          <label for="dndEnabled"
+            >Pause Slack notifications while in Focus Mode</label
+          >
         </div>
         <label for="dndDurationMinutes">Fallback pause length (minutes)</label>
-        <input type="number" id="dndDurationMinutes" min="1" step="1" style="max-width: 120px" />
+        <input
+          type="number"
+          id="dndDurationMinutes"
+          min="1"
+          step="1"
+          style="max-width: 120px"
+        />
         <p class="hint">
-          This does exactly what clicking your Slack profile photo → "Pause notifications" does.
-          Slack always needs a fixed duration, but the plugin reads the real length from the focus
-          session itself, so this fallback only applies when the session doesn't report one (for
-          example Flowtime mode, or the "Simulate focus start" button below). Ending focus mode
-          calls "Resume notifications" immediately either way.
+          This does exactly what clicking your Slack profile photo → "Pause
+          notifications" does. Slack always needs a fixed duration, but the
+          plugin reads the real length from the focus session itself, so this
+          fallback only applies when the session doesn't report one (for example
+          Flowtime mode, or the "Simulate focus start" button below). Ending
+          focus mode calls "Resume notifications" immediately either way.
         </p>
 
         <div class="checkbox-row">
           <input type="checkbox" id="focusStatusEnabled" />
-          <label for="focusStatusEnabled">Also set a custom status while in Focus Mode</label>
+          <label for="focusStatusEnabled"
+            >Also set a custom status while in Focus Mode</label
+          >
         </div>
         <div class="row">
           <div>
             <label for="focusStatusText">Status text</label>
-            <input type="text" id="focusStatusText" placeholder="In focus mode 🎯" />
+            <input
+              type="text"
+              id="focusStatusText"
+              placeholder="In focus mode 🎯"
+            />
           </div>
           <div>
             <label for="focusStatusEmoji">Emoji</label>
@@ -227,9 +293,9 @@
           </div>
         </div>
         <p class="hint">
-          While a focus session is running this status takes precedence over task tracking, so
-          starting or switching tasks won't overwrite it. When the session ends, your tracking
-          status is restored automatically.
+          While a focus session is running this status takes precedence over
+          task tracking, so starting or switching tasks won't overwrite it. When
+          the session ends, your tracking status is restored automatically.
         </p>
 
         <label for="focusStartActionTypes">Focus-start action type(s)</label>
@@ -237,42 +303,66 @@
         <label for="focusEndActionTypes">Focus-end action type(s)</label>
         <input type="text" id="focusEndActionTypes" />
         <p class="hint">
-          Comma-separated. Super Productivity has no dedicated "focus mode" plugin hook, so this
-          listens on the generic action stream and matches these exact type strings. The defaults
-          are taken from Super Productivity's actual focus-mode actions and should work as-is; if
-          your version differs, use the diagnostics below to find the right ones rather than
-          editing blind.
-          <button id="resetFocusTypesBtn" class="btn-outline" style="font-size:0.8em;padding:2px 6px;margin-left:4px">
+          Comma-separated. Super Productivity has no dedicated "focus mode"
+          plugin hook, so this listens on the generic action stream and matches
+          these exact type strings. The defaults are taken from Super
+          Productivity's actual focus-mode actions and should work as-is; if
+          your version differs, use the diagnostics below to find the right ones
+          rather than editing blind.
+          <button
+            id="resetFocusTypesBtn"
+            class="btn-outline"
+            style="font-size: 0.8em; padding: 2px 6px; margin-left: 4px"
+          >
             Reset to defaults
           </button>
         </p>
 
         <div class="checkbox-row">
           <input type="checkbox" id="debugLogFocusActions" />
-          <label for="debugLogFocusActions">Log Focus Mode actions to the console (for the above)</label>
+          <label for="debugLogFocusActions"
+            >Log Focus Mode actions to the console (for the above)</label
+          >
         </div>
 
         <div class="actions">
-          <button id="testFocusStartBtn" class="btn-outline">Simulate focus start</button>
-          <button id="testFocusEndBtn" class="btn-outline">Simulate focus end</button>
+          <button id="testFocusStartBtn" class="btn-outline">
+            Simulate focus start
+          </button>
+          <button id="testFocusEndBtn" class="btn-outline">
+            Simulate focus end
+          </button>
         </div>
         <p class="hint" id="focusStateHint"></p>
 
-        <div style="margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--border-color, rgba(127,127,127,0.2));">
-          <label style="margin-top:0">Diagnostics</label>
-          <p class="hint" id="diagSummary" style="margin-top:0">Not checked yet.</p>
-          <div id="diagFocusList" style="font-size: 0.85em; max-height: 160px; overflow-y: auto;"></div>
+        <div
+          style="
+            margin-top: var(--s2);
+            padding-top: var(--s2);
+            border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.2));
+          "
+        >
+          <label style="margin-top: 0">Diagnostics</label>
+          <p class="hint" id="diagSummary" style="margin-top: 0">
+            Not checked yet.
+          </p>
+          <div
+            id="diagFocusList"
+            style="font-size: 0.85em; max-height: 160px; overflow-y: auto"
+          ></div>
           <div class="actions">
             <button id="refreshDiagBtn" class="btn-outline">Refresh</button>
           </div>
           <p class="hint">
-            Click "Refresh" after starting/stopping a real focus session. If "Actions seen" stays
-            at 0, the plugin isn't receiving app events at all (try reloading or reinstalling the
-            plugin — that's a different problem than wrong action-type strings). If it counts up
-            but the list stays empty, Focus Mode's actions in your version don't contain the word
-            "focus". Entries are grouped by type with a count, so the once-a-second
-            <code>Timer Tick</code> doesn't crowd out the start/end actions — those are the ones
-            to assign with the buttons below.
+            Click "Refresh" after starting/stopping a real focus session. If
+            "Actions seen" stays at 0, the plugin isn't receiving app events at
+            all (try reloading or reinstalling the plugin — that's a different
+            problem than wrong action-type strings). If it counts up but the
+            list stays empty, Focus Mode's actions in your version don't contain
+            the word "focus". Entries are grouped by type with a count, so the
+            once-a-second
+            <code>Timer Tick</code> doesn't crowd out the start/end actions —
+            those are the ones to assign with the buttons below.
           </p>
         </div>
       </div>
@@ -318,7 +408,9 @@
       function setStatusMsg(msg, isError) {
         const s = el('status');
         s.textContent = msg;
-        s.style.color = isError ? 'var(--c-warn, #b26a00)' : 'var(--text-color-muted)';
+        s.style.color = isError
+          ? 'var(--c-warn, #b26a00)'
+          : 'var(--text-color-muted)';
       }
 
       function renderTokenStatus() {
@@ -447,7 +539,7 @@
         if (tokenInput && tokenInput.indexOf('xoxb-') === 0) {
           setStatusMsg(
             'That looks like a Bot token (xoxb-…). You need the User OAuth Token (xoxp-…) from the same page.',
-            true,
+            true
           );
           return;
         }
@@ -462,19 +554,22 @@
                 check.user +
                 (check.team ? ' @ ' + check.team : '') +
                 '.',
-              false,
+              false
             );
             showSnack('Slack Status Sync settings saved', 'SUCCESS');
           } else if (check && check.fatal) {
             // Settings were still saved; only the token was rejected.
-            setStatusMsg('Settings saved, but the token was rejected: ' + check.message, true);
+            setStatusMsg(
+              'Settings saved, but the token was rejected: ' + check.message,
+              true
+            );
           } else if (check) {
             el('slackToken').value = '';
             setStatusMsg(
               'Saved, but the token could not be verified right now (' +
                 check.message +
                 '). It has been stored anyway.',
-              true,
+              true
             );
           } else {
             setStatusMsg('Saved.', false);
@@ -494,11 +589,17 @@
           const res = await b.verifyToken();
           if (res.ok) {
             setStatusMsg(
-              'Token is valid — ' + res.user + (res.team ? ' @ ' + res.team : '') + '.',
-              false,
+              'Token is valid — ' +
+                res.user +
+                (res.team ? ' @ ' + res.team : '') +
+                '.',
+              false
             );
           } else {
-            setStatusMsg('Token check failed: ' + (res.message || res.error), true);
+            setStatusMsg(
+              'Token check failed: ' + (res.message || res.error),
+              true
+            );
           }
           refreshFromBridge(b);
         } catch (e) {
@@ -521,7 +622,10 @@
       el('resetFocusTypesBtn').addEventListener('click', () => {
         el('focusStartActionTypes').value = DEFAULTS.focusStartActionTypes;
         el('focusEndActionTypes').value = DEFAULTS.focusEndActionTypes;
-        setStatusMsg('Focus action types reset — click Save settings to apply.', false);
+        setStatusMsg(
+          'Focus action types reset — click Save settings to apply.',
+          false
+        );
       });
 
       el('testBtn').addEventListener('click', async () => {
@@ -534,7 +638,10 @@
             setStatusMsg('Test status sent — check Slack!', false);
             showSnack('Slack Status Sync: test status sent!', 'SUCCESS');
           } else {
-            setStatusMsg('Test failed — check that your token is saved and valid.', true);
+            setStatusMsg(
+              'Test failed — check that your token is saved and valid.',
+              true
+            );
           }
         } catch (e) {
           setStatusMsg('Failed to send test: ' + (e.message || e), true);
@@ -547,7 +654,10 @@
         try {
           await b.sendTestFocusStart();
           refreshFromBridge(b);
-          setStatusMsg('Simulated focus start — check Slack for paused notifications/status.', false);
+          setStatusMsg(
+            'Simulated focus start — check Slack for paused notifications/status.',
+            false
+          );
         } catch (e) {
           setStatusMsg('Failed: ' + (e.message || e), true);
         }
@@ -559,7 +669,10 @@
         try {
           await b.sendTestFocusEnd();
           refreshFromBridge(b);
-          setStatusMsg('Simulated focus end — notifications should resume and status restored.', false);
+          setStatusMsg(
+            'Simulated focus end — notifications should resume and status restored.',
+            false
+          );
         } catch (e) {
           setStatusMsg('Failed: ' + (e.message || e), true);
         }
@@ -630,7 +743,9 @@
           meta.className = 'diag-meta';
           const secAgo = Math.round((Date.now() - entry.ts) / 1000);
           meta.textContent =
-            (entry.count > 1 ? '×' + entry.count + ', ' : '') + secAgo + 's ago';
+            (entry.count > 1 ? '×' + entry.count + ', ' : '') +
+            secAgo +
+            's ago';
           row.appendChild(meta);
 
           const btns = document.createElement('div');
@@ -640,16 +755,16 @@
               'Use as start',
               'focusStartActionTypes',
               entry.type,
-              'Added to start types — click Save settings to apply.',
-            ),
+              'Added to start types — click Save settings to apply.'
+            )
           );
           btns.appendChild(
             makeAssignBtn(
               'Use as end',
               'focusEndActionTypes',
               entry.type,
-              'Added to end types — click Save settings to apply.',
-            ),
+              'Added to end types — click Save settings to apply.'
+            )
           );
           row.appendChild(btns);
 

@@ -1,0 +1,40 @@
+# Install the git hook once with:  pre-commit install
+# Run against everything with:     pre-commit run --all-files
+#
+# The Node hooks below pin their own Node via `language_version`, so they work
+# regardless of which Node happens to be active in your shell (ESLint 9 needs
+# >= 18.18, and nvm's default here is older).
+default_install_hook_types: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-json
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-added-large-files
+        # Super Productivity rejects plugin files above ~1 MB.
+        args: [--maxkb=512]
+
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: prettier --write --ignore-unknown
+        language: node
+        language_version: '20.19.0'
+        additional_dependencies: ['prettier@3.6.2']
+        types_or: [javascript, json, html, css, markdown, yaml]
+
+      - id: eslint
+        name: eslint
+        entry: eslint --fix --max-warnings=0
+        language: node
+        language_version: '20.19.0'
+        additional_dependencies: ['eslint@9.39.0', '@eslint/js@9.39.0']
+        files: \.js$
+        exclude: ^node_modules/
