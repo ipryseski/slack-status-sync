@@ -1,0 +1,22 @@
+{
+  "name": "slack-status-sync",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Super Productivity plugin that mirrors your tracked task into your Slack status.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "package": "rm -f slack-status-sync.zip && zip -j -X slack-status-sync.zip manifest.json plugin.js index.html icon.svg"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}

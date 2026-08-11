@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  format:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  manifest:
+    name: Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # manifest.json is what the plugin host parses first; a typo here means
+      # the plugin silently fails to load, so check it separately from lint.
+      - name: Validate manifest.json
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const m = JSON.parse(readFileSync("manifest.json", "utf8"));
+            const required = ["id", "name", "version", "manifestVersion", "minSupVersion"];
+            const missing = required.filter((k) => !(k in m));
+            if (missing.length) {
+              console.error("manifest.json missing keys: " + missing.join(", "));
+              process.exit(1);
+            }
+            console.log(`manifest.json OK (${m.id} v${m.version})`);
+          '
+
+  package:
+    name: Plugin ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build plugin ZIP
+        run: npm run package
+      - name: Upload as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: slack-status-sync-plugin
+          path: slack-status-sync.zip
+          if-no-files-found: error

@@ -10,13 +10,19 @@ Super Productivity installs plugins from a ZIP file — there's no
 load-from-folder option, and no way to install one via its REST API, so this
 is the only route.
 
-1. Build the zip from the repo root. The files must be at the **top level** of
-   the archive, not inside a folder — Super Productivity looks up
-   `manifest.json` by exact name and won't find it under a directory:
+1. Get `slack-status-sync.zip`, either by downloading it from the
+   [latest release](https://github.com/ipryseski/slack-status-sync/releases/latest)
+   or by building it from the repo root:
 
    ```sh
-   zip slack-status-sync.zip manifest.json plugin.js index.html icon.svg
+   npm run package
    ```
+
+   The files must be at the **top level** of the archive, not inside a folder —
+   Super Productivity looks up `manifest.json` by exact name and won't find it
+   under a directory. That's what `npm run package` (and the release workflow)
+   guarantees; if you build the zip by hand, it's
+   `zip -j slack-status-sync.zip manifest.json plugin.js index.html icon.svg`.
 
 2. In Super Productivity: **Settings → Plugins → Install Plugin**, choose the
    zip, and accept the permission prompt.
@@ -79,14 +85,14 @@ dispatches) and watches for Focus Mode's action `type` strings.
 The defaults are taken from Super Productivity's actual focus-mode actions
 (verified against 18.19.0) rather than guessed:
 
-| | Action types |
-|---|---|
-| Start | `[FocusMode] Start Session` |
-| End | `[FocusMode] Complete Session`, `[FocusMode] Cancel Session`, `[FocusMode] End Flowtime Session` |
+|       | Action types                                                                                     |
+| ----- | ------------------------------------------------------------------------------------------------ |
+| Start | `[FocusMode] Start Session`                                                                      |
+| End   | `[FocusMode] Complete Session`, `[FocusMode] Cancel Session`, `[FocusMode] End Flowtime Session` |
 
 A session that runs to completion dispatches **Complete Session**; one you
 abort dispatches **Cancel Session**. `Show Overlay` / `Hide Overlay` are
-deliberately *not* used — they're pure UI events that also fire when you
+deliberately _not_ used — they're pure UI events that also fire when you
 merely open or close the focus screen, so triggering DND from them would
 pause your notifications just for looking at the focus tab.
 
@@ -191,6 +197,54 @@ builds without `request()` fall back to `fetch`, which is why
 - If you use Super Productivity on multiple devices, you'll need to paste the
   token again on each device (secrets are intentionally per-device, not
   synced).
+
+## Development
+
+```sh
+npm install          # ESLint + Prettier (needs Node >= 18.18)
+npm run lint         # ESLint over *.js
+npm run lint:fix
+npm run format       # Prettier over js/html/json/md/yaml
+npm run format:check
+npm run package      # build slack-status-sync.zip
+```
+
+ESLint only sees `plugin.js` — it can't parse the inline `<script>` in
+`index.html` — so logic belongs in `plugin.js`, where it gets checked.
+Prettier does format the whole file, inline script included.
+
+### Pre-commit hook
+
+The repo ships a [pre-commit](https://pre-commit.com) config that runs Prettier
+and ESLint (plus JSON/YAML sanity checks) on the files you're committing:
+
+```sh
+pre-commit install            # once, to enable the git hook
+pre-commit run --all-files    # run everything on demand
+```
+
+Both hooks auto-fix and pin their own Node, so they work even if your shell's
+active Node is too old for ESLint 9. When a hook rewrites a file the commit is
+aborted — re-stage the fixes and commit again.
+
+### CI
+
+`.github/workflows/ci.yml` runs ESLint, `prettier --check`, a `manifest.json`
+sanity check, and builds the plugin ZIP as a downloadable artifact on every
+push and pull request.
+
+### Cutting a release
+
+Bump `version` in `manifest.json`, commit, then tag it:
+
+```sh
+git tag v1.2.1 && git push origin v1.2.1
+```
+
+`.github/workflows/release.yml` verifies the tag matches `manifest.json`, lints,
+builds the ZIP, asserts its entries sit at the archive root, and publishes it as
+a GitHub release asset. A tag that disagrees with the manifest fails instead of
+publishing.
 
 ## What changed in 1.2.0
 
