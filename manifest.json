@@ -1,7 +1,7 @@
 {
   "id": "slack-status-sync",
   "name": "Slack Status Sync",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Sets your Slack status to the task you're tracking time for, updates it at end of day, and can pause Slack notifications while you're in Focus Mode.",
   "manifestVersion": 1,
   "minSupVersion": "14.0.0",

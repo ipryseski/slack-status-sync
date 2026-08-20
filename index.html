@@ -216,7 +216,9 @@
       <div class="card">
         <h2>End of day</h2>
         <p class="hint" style="margin-top: 0">
-          Applied when you press the "Finish Day" button.
+          Super Productivity's own "Finish Day" button doesn't currently notify
+          plugins when you press it (a wiring gap in Super Productivity itself,
+          not this plugin), so use the "Finish day now" button below instead.
         </p>
         <div class="checkbox-row">
           <input type="checkbox" id="endOfDayEnabled" />
@@ -245,6 +247,11 @@
         <p class="hint">
           0 = never auto-clear (status stays until you change it yourself).
         </p>
+        <div class="actions">
+          <button id="finishDayNowBtn" class="btn-outline">
+            Finish day now
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -645,6 +652,17 @@
           }
         } catch (e) {
           setStatusMsg('Failed to send test: ' + (e.message || e), true);
+        }
+      });
+
+      el('finishDayNowBtn').addEventListener('click', async () => {
+        const b = getBridge();
+        if (!b) return;
+        try {
+          await b.finishDayNow();
+          setStatusMsg('End-of-day status applied — check Slack!', false);
+        } catch (e) {
+          setStatusMsg('Failed: ' + (e.message || e), true);
         }
       });
 

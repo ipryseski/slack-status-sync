@@ -58,6 +58,46 @@ jobs:
             console.log(`manifest.json OK (${m.id} v${m.version})`);
           '
 
+  version-bump:
+    name: Version bump
+    # Pull requests only, and only when a PR touches the files that actually
+    # ship (see FILES in scripts/package.sh) — a docs/CI-only PR shouldn't be
+    # forced to bump the plugin version.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Check manifest.json version was bumped
+        run: |
+          git fetch --depth=1 origin "${{ github.event.pull_request.base.ref }}"
+
+          changed="$(git diff --name-only FETCH_HEAD HEAD -- manifest.json plugin.js index.html icon.svg)"
+          if [ -z "$changed" ]; then
+            echo "No shipped plugin files changed — version bump not required."
+            exit 0
+          fi
+
+          git show FETCH_HEAD:manifest.json > /tmp/base-manifest.json
+          base_version="$(node -p 'require("/tmp/base-manifest.json").version')"
+          head_version="$(node -p 'require("./manifest.json").version')"
+
+          node -e '
+            const toParts = (v) => v.split(".").map(Number);
+            const [base, head] = [process.argv[1], process.argv[2]].map(toParts);
+            for (let i = 0; i < 3; i++) {
+              if (head[i] > base[i]) process.exit(0);
+              if (head[i] < base[i]) {
+                console.error(`::error::manifest.json version (${process.argv[2]}) is lower than base (${process.argv[1]})`);
+                process.exit(1);
+              }
+            }
+            console.error(`::error::plugin files changed but manifest.json version was not bumped (still ${process.argv[2]})`);
+            process.exit(1);
+          ' "$base_version" "$head_version"
+
   package:
     name: Plugin ZIP (test build)
     # Pull requests only. The ZIP that ships is built by release.yml on a tag;
@@ -112,6 +152,13 @@ jobs:
 
             **[Download slack-status-sync.zip](${{ steps.upload.outputs.artifact-url }})**
             (v${{ steps.zip.outputs.version }}, ${{ steps.zip.outputs.size }}, built from ${{ github.event.pull_request.head.sha }})
+
+            GitHub wraps the download in its own outer ZIP, so you'll get a
+            `slack-status-sync-plugin-pr${{ github.event.number }}.zip`
+            containing a single `slack-status-sync.zip` — unzip once and
+            install *that inner file* in Super Productivity, not the outer
+            one (the outer one has no `manifest.json` at its root and will
+            fail to load).
 
             Install it via **Settings → Plugins → Install Plugin** in Super
             Productivity, then toggle the plugin off and on — there's no hot
