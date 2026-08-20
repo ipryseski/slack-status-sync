@@ -153,6 +153,13 @@ jobs:
             **[Download slack-status-sync.zip](${{ steps.upload.outputs.artifact-url }})**
             (v${{ steps.zip.outputs.version }}, ${{ steps.zip.outputs.size }}, built from ${{ github.event.pull_request.head.sha }})
 
+            GitHub wraps the download in its own outer ZIP, so you'll get a
+            `slack-status-sync-plugin-pr${{ github.event.number }}.zip`
+            containing a single `slack-status-sync.zip` — unzip once and
+            install *that inner file* in Super Productivity, not the outer
+            one (the outer one has no `manifest.json` at its root and will
+            fail to load).
+
             Install it via **Settings → Plugins → Install Plugin** in Super
             Productivity, then toggle the plugin off and on — there's no hot
             reload. Downloading requires being signed in to GitHub, and the
