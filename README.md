@@ -1,7 +1,7 @@
 # Slack Status Sync — Super Productivity plugin
 
 Updates your Slack status to reflect the task you're currently tracking time for,
-and updates it again when you press "Finish Day". Optionally pauses your Slack
+and updates it again for end of day. Optionally pauses your Slack
 notifications while you're in Focus Mode.
 
 ## Install
@@ -177,13 +177,24 @@ builds without `request()` fall back to `fetch`, which is why
   task changes stop touching your status until the session ends.
 - **Focus session ends** → notifications resume and the tracking status is
   restored.
-- **Press "Finish Day"** → status becomes your end-of-day text/emoji, and
-  optionally auto-clears itself after N hours (Slack handles the expiry, not
-  the plugin — so it works even if Super Productivity isn't running). This
-  outranks focus mode: a session ending afterwards won't overwrite it.
+- **Click "Finish day now"** in the plugin's settings → status becomes your
+  end-of-day text/emoji, and optionally auto-clears itself after N hours
+  (Slack handles the expiry, not the plugin — so it works even if Super
+  Productivity isn't running). This outranks focus mode: a session ending
+  afterwards won't overwrite it.
+  Super Productivity's own "Finish Day" button doesn't currently notify
+  plugins when pressed (a gap in Super Productivity itself, not this plugin),
+  so use the button in the settings panel instead — see
+  [Notes / limitations](#notes--limitations).
 
 ## Notes / limitations
 
+- Super Productivity's real "Finish Day" button doesn't dispatch the event
+  plugins need to react to it (confirmed against the 18.19.0 app bundle: the
+  action that would trigger it is never actually fired), so end-of-day status
+  updates use a "Finish day now" button in the plugin's own settings panel
+  instead. Worth re-checking after a Super Productivity upgrade in case this
+  gets fixed upstream.
 - Uses Slack's Web API directly from the app, so it only works while Super
   Productivity itself is running (there's no background server component).
 - Status text is capped at 100 characters (Slack's limit) — longer task

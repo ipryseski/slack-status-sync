@@ -634,6 +634,15 @@
     }, TASK_CHANGE_DEBOUNCE_MS);
   }
 
+  // Registered on PluginAPI.Hooks.FINISH_DAY below, but that hook is dead in
+  // SP 18.19.0: it only fires from an NgRx effect gated on an action
+  // `{type: 'FINISH_DAY'}`, and that action is assigned to a component field
+  // (`actionsToExecuteBeforeFinishDay`) which is never actually dispatched
+  // anywhere in the shipped app — confirmed by grepping the bundle, not
+  // observed behavior. The real "Finish Day" button never fires it. The hook
+  // stays registered in case a future SP release wires it up; the
+  // "Finish day now" button in the settings UI (slackStatusBridge.finishDayNow)
+  // calls this function directly as the reliable path meanwhile.
   async function handleFinishDay() {
     if (!configReady) await ensureConfig();
     if (!cfg.endOfDayEnabled) return;
@@ -853,6 +862,10 @@
     },
     sendTestFocusEnd: async () => {
       await handleFocusEnd();
+      return true;
+    },
+    finishDayNow: async () => {
+      await handleFinishDay();
       return true;
     },
     getDiagnostics: () => ({
